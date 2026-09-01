@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Text } from 'react-native';
 import { Slot, router, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { supabase } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { initOfflineDb, syncVersesToCache } from '../lib/offline';
 import { T } from '../constants/theme';
 
@@ -39,6 +39,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     const init = async () => {
+      if (!isSupabaseConfigured) {
+        setAuthReady(true);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       await initOfflineDb();
@@ -46,6 +51,8 @@ export default function RootLayout() {
       setAuthReady(true);
     };
     init();
+
+    if (!isSupabaseConfigured) return;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
@@ -110,7 +117,42 @@ export default function RootLayout() {
   }, [session, authReady, fontsLoaded, fontError, segments]);
 
   if ((!fontsLoaded && !fontError) || !authReady) return <View style={s.splash} />;
+  if (!isSupabaseConfigured) {
+    return (
+      <View style={s.setup}>
+        <Text style={s.setupTitle}>VerseKeep needs configuration</Text>
+        <Text style={s.setupBody}>
+          Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to
+          Vercel&apos;s Production environment, then redeploy.
+        </Text>
+      </View>
+    );
+  }
   return <Slot />;
 }
 
-const s = StyleSheet.create({ splash: { flex: 1, backgroundColor: T.black } });
+const s = StyleSheet.create({
+  splash: { flex: 1, backgroundColor: T.black },
+  setup: {
+    flex: 1,
+    backgroundColor: T.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  setupTitle: {
+    color: T.white,
+    fontFamily: 'DMSans-Bold',
+    fontSize: 24,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  setupBody: {
+    color: T.creamDim,
+    fontFamily: 'DMSans',
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+    maxWidth: 520,
+  },
+});
