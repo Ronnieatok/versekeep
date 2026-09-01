@@ -4,8 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL  = process.env.EXPO_PUBLIC_SUPABASE_URL  ?? '';
 const SUPABASE_ANON = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const FALLBACK_SUPABASE_URL = 'https://placeholder.supabase.co';
+const FALLBACK_SUPABASE_ANON = 'placeholder-anon-key';
 
-if (!SUPABASE_URL || !SUPABASE_ANON) {
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON);
+
+if (!isSupabaseConfigured) {
   console.warn(
     '[VerseKeep] Supabase env vars missing.\n' +
     'Create a .env file with:\n' +
@@ -14,14 +18,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
   );
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
+export const supabase = createClient(
+  SUPABASE_URL || FALLBACK_SUPABASE_URL,
+  SUPABASE_ANON || FALLBACK_SUPABASE_ANON,
+  {
   auth: {
     storage:            AsyncStorage,
     autoRefreshToken:   true,
     persistSession:     true,
     detectSessionInUrl: false, // Required for React Native — no browser URL bar
   },
-});
+  },
+);
 
 // ─── Helper: get current user ID (throws if not logged in) ───
 export async function getUserId(): Promise<string> {
