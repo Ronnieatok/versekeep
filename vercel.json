@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/versekeep exec expo export --platform web --output-dir dist",
-  "outputDirectory": "artifacts/versekeep/dist",
+  "buildCommand": "cd artifacts/versekeep && pnpm exec expo export --platform web --output-dir ../../dist",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
