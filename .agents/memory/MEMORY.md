@@ -1,0 +1,1 @@
+- [Expo export port](expo-export-port.md) — the production Expo export needs Metro's default port free; stop competing preview services before building.
