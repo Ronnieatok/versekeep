@@ -5,13 +5,15 @@ import { supabase } from '../../lib/supabase';
 import { useOfflineVerses } from '../../lib/offline';
 import { useStreak }        from '../../lib/streak';
 import { T, FONTS }         from '../../constants/theme';
+import { AppIcon }          from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 const DAYS = ['S','M','T','W','T','F','S'];
 const QUICK = [
-  { icon:'✍️', label:'Write a verse',   sub:'Add to your vault',    route:'/(tabs)/write'  },
-  { icon:'🔖', label:'My bookmarks',    sub:'Pinned verses',         route:'/(tabs)/vault'  },
-  { icon:'🔍', label:'Search scripture',sub:'Find by keyword',       route:'/(tabs)/search' },
-  { icon:'🔔', label:'Set reminder',    sub:'Daily devotion alert',  route:'/reminders'     },
+  { icon:'create-outline',   label:'Write a verse',    sub:'Add to your vault',   route:'/(tabs)/write'  },
+  { icon:'bookmark-outline', label:'My bookmarks',     sub:'Pinned verses',       route:'/(tabs)/vault'  },
+  { icon:'search-outline',   label:'Search scripture', sub:'Find by keyword',     route:'/(tabs)/search' },
+  { icon:'notifications-outline', label:'Set reminder', sub:'Daily devotion alert', route:'/reminders' },
 ];
 
 export default function DashboardScreen() {
@@ -32,16 +34,24 @@ export default function DashboardScreen() {
   const userName  = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Friend';
   const todayVerse= verses[0];
   const bookmarks = verses.filter(v => v.bookmarked).length;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
     <View style={s.root}>
-      {isOffline && <View style={s.offlineBanner}><Text style={s.offlineTxt}>📶 Offline — showing cached verses</Text></View>}
+      {isOffline && (
+        <View style={s.offlineBanner}>
+          <AppIcon name="cloud-offline-outline" size={15} color={T.warning} />
+          <Text style={s.offlineTxt}>Offline — showing cached verses</Text>
+        </View>
+      )}
       <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={T.red}/>} showsVerticalScrollIndicator={false}>
+        <ResponsiveContent style={s.content}>
 
         {/* Greeting */}
         <View style={s.greeting}>
           <View>
-            <Text style={s.greetSub}>Good morning</Text>
+            <Text style={s.greetSub}>{greeting}</Text>
             <View style={s.greetRow}><Text style={s.greetName}>{userName.toUpperCase()}</Text><Text style={s.greetStar}> ✦</Text></View>
           </View>
           <TouchableOpacity style={s.avatar} onPress={() => router.push('/(tabs)/profile')}>
@@ -51,7 +61,7 @@ export default function DashboardScreen() {
 
         {/* Streak */}
         <View style={s.streak}>
-          <View style={s.streakIcon}><Text style={s.streakEmoji}>🔥</Text></View>
+          <View style={s.streakIcon}><AppIcon name="flame-outline" size={23} color={T.red} /></View>
           <View style={s.streakText}>
             <Text style={s.streakTitle}>{streak.count > 0 ? `${streak.count}-DAY STREAK` : 'START YOUR STREAK'}</Text>
             <Text style={s.streakSub}>{streak.todayDone ? 'You read today ✓' : 'Read a verse to keep it going'}</Text>
@@ -92,7 +102,7 @@ export default function DashboardScreen() {
 
         {!loading && verses.length === 0 && (
           <View style={s.emptyState}>
-            <Text style={s.emptyIcon}>📖</Text>
+            <AppIcon name="book-outline" size={38} color={T.red} />
             <Text style={s.emptyTitle}>VAULT IS EMPTY</Text>
             <Text style={s.emptySub}>Save your first verse to see it here</Text>
             <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/write')}><Text style={s.emptyBtnText}>WRITE A VERSE</Text></TouchableOpacity>
@@ -112,7 +122,7 @@ export default function DashboardScreen() {
           <View style={s.actionsGrid}>
             {QUICK.map(a => (
               <TouchableOpacity key={a.label} style={s.actionCard} onPress={() => router.push(a.route as any)} activeOpacity={0.8}>
-                <Text style={s.actionIcon}>{a.icon}</Text>
+                <AppIcon name={a.icon} size={22} color={T.red} />
                 <Text style={s.actionLabel}>{a.label}</Text>
                 <Text style={s.actionSub}>{a.sub}</Text>
               </TouchableOpacity>
@@ -142,6 +152,7 @@ export default function DashboardScreen() {
           </View>
         )}
         <View style={{height:24}}/>
+        </ResponsiveContent>
       </ScrollView>
     </View>
   );
@@ -152,6 +163,7 @@ const s = StyleSheet.create({
   offlineBanner:  {backgroundColor:'rgba(201,146,26,0.12)',borderBottomWidth:0.5,borderBottomColor:'rgba(201,146,26,0.3)',paddingHorizontal:20,paddingVertical:8},
   offlineTxt:     {fontSize:12,color:'#C9921A',fontFamily:FONTS.body,fontWeight:'500'},
   scroll:         {paddingBottom:80},
+  content:        {paddingHorizontal:0},
   greeting:       {flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',paddingHorizontal:20,paddingTop:20,paddingBottom:16},
   greetSub:       {fontSize:10,color:T.creamMute,letterSpacing:1.2,textTransform:'uppercase',fontFamily:FONTS.body,marginBottom:3},
   greetRow:       {flexDirection:'row',alignItems:'baseline'},
@@ -161,7 +173,6 @@ const s = StyleSheet.create({
   avatarLetter:   {fontFamily:FONTS.display,fontSize:20,color:T.white},
   streak:         {marginHorizontal:20,marginBottom:18,backgroundColor:T.surface,borderWidth:0.5,borderColor:T.border,borderRadius:4,padding:14,flexDirection:'row',alignItems:'center',gap:12},
   streakIcon:     {width:44,height:44,backgroundColor:T.redFaint,borderWidth:0.5,borderColor:T.redBorder,borderRadius:3,alignItems:'center',justifyContent:'center',flexShrink:0},
-  streakEmoji:    {fontSize:22},
   streakText:     {flex:1},
   streakTitle:    {fontFamily:FONTS.display,fontSize:18,color:T.red,letterSpacing:1},
   streakSub:      {fontSize:11,color:T.creamDim,fontFamily:FONTS.body,fontWeight:'300',marginTop:2},
