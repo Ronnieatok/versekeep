@@ -6,6 +6,8 @@ import {
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { T, FONTS } from '../../constants/theme';
+import { AppIcon } from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 const TRANSLATIONS = ['NIV', 'KJV', 'ESV', 'NLT', 'NKJV'];
 const TAGS_LIST    = ['Love','Faith','Strength','Peace','Hope','Grace','Wisdom','Healing','Joy','Trust'];
@@ -69,7 +71,7 @@ export default function WriteVerseScreen() {
   if (saved) return (
     <View style={styles.successRoot}>
       <View style={styles.successBox}>
-        <Text style={styles.successTick}>✓</Text>
+        <AppIcon name="checkmark" size={32} color={T.red} />
       </View>
       <Text style={styles.successTitle}>VERSE SAVED</Text>
       <Text style={styles.successSub}>Added to your vault</Text>
@@ -90,6 +92,7 @@ export default function WriteVerseScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ResponsiveContent style={styles.content}>
 
         {/* STEP 1 */}
         {step === 1 && (
@@ -167,12 +170,13 @@ export default function WriteVerseScreen() {
             <TouchableOpacity style={styles.redBtn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
               {saving
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.redBtnLabel}>Save to vault ✦</Text>
+                : <Text style={styles.redBtnLabel}>Save to vault</Text>
               }
             </TouchableOpacity>
           </View>
         )}
         <View style={{ height: 40 }} />
+        </ResponsiveContent>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -187,6 +191,7 @@ const styles = StyleSheet.create({
   stepDot:          { width:22, height:3, borderRadius:2, backgroundColor:T.surfaceEl },
   stepDotActive:    { backgroundColor:T.red },
   scroll:           { paddingBottom:30 },
+  content:          { paddingHorizontal:0 },
   stepBody:         { padding:20 },
   stepLabel:        { fontSize:10, color:T.creamMute, letterSpacing:1.2, textTransform:'uppercase', fontWeight:'700', fontFamily:FONTS.body, marginBottom:16 },
   fieldLabel:       { fontSize:11, color:T.creamDim, letterSpacing:1, textTransform:'uppercase', fontFamily:FONTS.body, marginBottom:6 },
