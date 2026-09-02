@@ -11,6 +11,8 @@ import { supabase } from '../../lib/supabase';
 import { updateStreak } from '../../lib/streak';
 import { shareVerse }   from '../../lib/share';
 import { T, FONTS }     from '../../constants/theme';
+import { AppIcon } from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 type Verse = {
   id: string;
@@ -148,7 +150,7 @@ export default function VerseDetailScreen() {
       {/* ── Header ── */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top:10,bottom:10,left:10,right:10 }}>
-          <Text style={s.back}>← Back</Text>
+          <View style={s.backButton}><AppIcon name="arrow-back-outline" size={18} color={T.creamDim} /><Text style={s.back}>Back</Text></View>
         </TouchableOpacity>
 
         <View style={s.headerActions}>
@@ -157,13 +159,14 @@ export default function VerseDetailScreen() {
             onPress={toggleBookmark}
             activeOpacity={0.8}
           >
+            <AppIcon name={verse.bookmarked ? 'bookmark' : 'bookmark-outline'} size={16} color={verse.bookmarked ? T.red : T.creamDim} />
             <Text style={[s.bkmkText, verse.bookmarked && s.bkmkTextActive]}>
-              {verse.bookmarked ? '🔖 Saved' : '🏷️ Bookmark'}
+              {verse.bookmarked ? 'Saved' : 'Bookmark'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleShare} hitSlop={{ top:8,bottom:8,left:8,right:8 }}>
-            <Text style={s.shareIcon}>↗️</Text>
+            <AppIcon name="share-outline" size={20} color={T.creamDim} />
           </TouchableOpacity>
         </View>
       </View>
@@ -173,6 +176,7 @@ export default function VerseDetailScreen() {
         contentContainerStyle={s.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        <ResponsiveContent style={s.content}>
         {/* ── Verse card ── */}
         <View style={s.verseCard}>
           <View style={s.cardAccent} />
@@ -310,12 +314,12 @@ export default function VerseDetailScreen() {
             onPress={() => router.push({ pathname: '/reminders', params: { verseId: id } })}
             activeOpacity={0.8}
           >
-            <Text style={s.actionIcon}>🔔</Text>
+            <AppIcon name="notifications-outline" size={18} color={T.creamDim} />
             <Text style={s.actionLabel}>Set Reminder</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.actionBtn} onPress={handleShare} activeOpacity={0.8}>
-            <Text style={s.actionIcon}>↗️</Text>
+            <AppIcon name="share-outline" size={18} color={T.creamDim} />
             <Text style={s.actionLabel}>Share Verse</Text>
           </TouchableOpacity>
         </View>
@@ -326,6 +330,7 @@ export default function VerseDetailScreen() {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
+        </ResponsiveContent>
       </ScrollView>
     </View>
   );
@@ -335,18 +340,19 @@ const s = StyleSheet.create({
   root:               { flex:1, backgroundColor:T.black },
   center:             { flex:1, backgroundColor:T.black, alignItems:'center', justifyContent:'center' },
   header:             { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingHorizontal:20, paddingVertical:16, borderBottomWidth:0.5, borderBottomColor:T.border },
+  backButton:         { flexDirection:'row', alignItems:'center', gap:6 },
   back:               { fontSize:13, color:T.creamDim, fontFamily:FONTS.body },
   headerActions:      { flexDirection:'row', alignItems:'center', gap:12 },
   bkmkBtn:            { borderWidth:0.5, borderColor:T.borderMd, borderRadius:3, paddingHorizontal:12, paddingVertical:6 },
   bkmkBtnActive:      { borderColor:T.red, backgroundColor:T.redFaint },
   bkmkText:           { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'700', letterSpacing:0.8, textTransform:'uppercase' },
   bkmkTextActive:     { color:T.red },
-  shareIcon:          { fontSize:18 },
   scroll:             { flex:1 },
   scrollContent:      { paddingBottom:30 },
+  content:            { paddingHorizontal:0 },
 
   // Verse card
-  verseCard:          { marginHorizontal:20, marginTop:20, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.borderMd, borderRadius:4, flexDirection:'row', overflow:'hidden' },
+  verseCard:          { marginTop:20, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.borderMd, borderRadius:4, flexDirection:'row', overflow:'hidden' },
   cardAccent:         { width:4, backgroundColor:T.red },
   cardInner:          { flex:1, padding:20, position:'relative' },
   quoteMark:          { position:'absolute', right:10, bottom:-10, fontFamily:FONTS.serif, fontSize:80, color:'rgba(197,0,34,0.07)', lineHeight:80 },
@@ -369,10 +375,10 @@ const s = StyleSheet.create({
   tagOptionText:      { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'600', letterSpacing:0.7, textTransform:'uppercase' },
   tagOptionTextActive:{ color:T.red },
 
-  savedDate:          { fontSize:11, color:T.creamMute, fontFamily:FONTS.body, marginHorizontal:20, marginTop:10, marginBottom:2, fontStyle:'italic' },
+  savedDate:          { fontSize:11, color:T.creamMute, fontFamily:FONTS.body, marginTop:10, marginBottom:2, fontStyle:'italic' },
 
   // Sections
-  section:            { marginHorizontal:20, marginTop:18 },
+  section:            { marginTop:18 },
   sectionHead:        { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
   sectionTitle:       { fontSize:10, color:T.creamMute, letterSpacing:1.2, textTransform:'uppercase', fontWeight:'700', fontFamily:FONTS.body },
   savingText:         { fontSize:10, color:T.creamMute, fontFamily:FONTS.body, fontStyle:'italic' },
@@ -396,9 +402,8 @@ const s = StyleSheet.create({
   addTaskBtnText:     { fontSize:22, color:T.red, lineHeight:28 },
 
   // Bottom actions
-  actionsRow:         { flexDirection:'row', gap:8, marginHorizontal:20, marginTop:18 },
+  actionsRow:         { flexDirection:'row', gap:8, marginTop:18 },
   actionBtn:          { flex:1, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:3, padding:13, alignItems:'center', flexDirection:'row', justifyContent:'center', gap:6 },
-  actionIcon:         { fontSize:16 },
   actionLabel:        { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'700', letterSpacing:0.8, textTransform:'uppercase' },
 
   // Delete
