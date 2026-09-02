@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { T, FONTS } from '../constants/theme';
+import { AppIcon } from '../components/AppIcon';
 
 // How notifications are handled while app is in foreground
 if (Platform.OS !== 'web') {
@@ -34,9 +35,9 @@ type ReminderRow = {
 };
 
 const VERSE_TYPES = [
-  { id: 'random',  label: '🎲 Random saved verse',     sub: 'Surprise yourself daily'              },
-  { id: 'today',   label: '📖 Verse of the day',        sub: 'Latest saved verse'                   },
-  { id: 'specific',label: '📌 A specific verse',        sub: 'Pick one from your vault'             },
+  { id: 'random',  label: 'Random saved verse',     sub: 'Surprise yourself daily'              },
+  { id: 'today',   label: 'Verse of the day',       sub: 'Latest saved verse'                   },
+  { id: 'specific',label: 'A specific verse',       sub: 'Pick one from your vault'             },
 ];
 
 const DAYS_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -64,6 +65,12 @@ export default function RemindersScreen() {
   // ─── Load existing reminder ───
   useEffect(() => {
     const init = async () => {
+      if (Platform.OS === 'web') {
+        setPermission('denied');
+        setLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -109,8 +116,8 @@ export default function RemindersScreen() {
     if (!enabled || activeDays.length === 0) return;
 
     const quotes = [
-      'Your daily verse is waiting 📖',
-      'A word of hope for your day 🙏',
+      'Your daily verse is waiting',
+      'A word of hope for your day',
       'Take a moment with scripture ✦',
       'Your morning devotion awaits',
     ];
@@ -198,6 +205,21 @@ export default function RemindersScreen() {
     <View style={s.center}><ActivityIndicator color={T.red} size="large" /></View>
   );
 
+  if (Platform.OS === 'web') {
+    return (
+      <View style={s.center}>
+        <AppIcon name="phone-portrait-outline" size={40} color={T.red} />
+        <Text style={s.webNoticeTitle}>Reminders are mobile-only</Text>
+        <Text style={s.webNotice}>
+          Set daily devotion notifications from the VerseKeep app on iOS or Android.
+        </Text>
+        <TouchableOpacity style={s.webBackButton} onPress={() => router.back()} activeOpacity={0.85}>
+          <Text style={s.saveBtnText}>GO BACK</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       {/* Header */}
@@ -213,7 +235,7 @@ export default function RemindersScreen() {
         {/* Permission warning */}
         {permission === 'denied' && (
           <View style={s.permWarning}>
-            <Text style={s.permWarningIcon}>⚠️</Text>
+            <AppIcon name="alert-circle-outline" size={20} color={T.warning} />
             <View style={{ flex:1 }}>
               <Text style={s.permWarningTitle}>Notifications blocked</Text>
               <Text style={s.permWarningSub}>Go to Settings → VerseKeep → Notifications to allow reminders.</Text>
@@ -224,7 +246,7 @@ export default function RemindersScreen() {
         {/* Master toggle */}
         <View style={s.toggleCard}>
           <View style={s.toggleLeft}>
-            <Text style={s.toggleIcon}>🔔</Text>
+            <AppIcon name="notifications-outline" size={26} color={T.red} />
             <View>
               <Text style={s.toggleTitle}>Daily devotion reminder</Text>
               <Text style={s.toggleSub}>{enabled ? 'On — you will receive daily alerts' : 'Off — tap to enable'}</Text>
@@ -313,13 +335,13 @@ export default function RemindersScreen() {
 
             {/* Preview */}
             <View style={s.preview}>
-              <Text style={s.previewIcon}>👁️</Text>
+              <AppIcon name="eye-outline" size={21} color={T.creamDim} />
               <View style={{ flex:1 }}>
                 <Text style={s.previewTitle}>Preview notification</Text>
                 <View style={s.previewBubble}>
                   <Text style={s.previewAppName}>VerseKeep</Text>
                   <Text style={s.previewNotifTitle}>VerseKeep — Daily Reminder</Text>
-                  <Text style={s.previewNotifBody}>Your daily verse is waiting 📖</Text>
+                  <Text style={s.previewNotifBody}>Your daily verse is waiting</Text>
                 </View>
               </View>
             </View>
@@ -350,22 +372,23 @@ export default function RemindersScreen() {
 const s = StyleSheet.create({
   root:             { flex:1, backgroundColor:T.black },
   center:           { flex:1, backgroundColor:T.black, alignItems:'center', justifyContent:'center' },
+  webNoticeTitle:   { color:T.cream, fontFamily:FONTS.display, fontSize:24, marginTop:16, letterSpacing:1, textAlign:'center' },
+  webNotice:        { color:T.creamDim, fontFamily:FONTS.body, fontSize:14, lineHeight:21, maxWidth:360, textAlign:'center', marginTop:8, paddingHorizontal:24 },
+  webBackButton:    { backgroundColor:T.red, borderRadius:3, paddingVertical:13, paddingHorizontal:24, marginTop:20 },
   header:           { flexDirection:'row', alignItems:'center', gap:16, paddingHorizontal:20, paddingVertical:16, borderBottomWidth:0.5, borderBottomColor:T.border },
   back:             { fontSize:13, color:T.creamDim, fontFamily:FONTS.body },
   headerTitle:      { fontFamily:FONTS.display, fontSize:22, color:T.cream, letterSpacing:1 },
   scroll:           { flex:1 },
-  scrollContent:    { padding:20, paddingBottom:40 },
+  scrollContent:    { width:'100%', maxWidth:760, alignSelf:'center', padding:20, paddingBottom:40 },
 
   // Permission
   permWarning:      { flexDirection:'row', gap:10, backgroundColor:T.amberFaint, borderWidth:0.5, borderColor:T.amberBorder, borderRadius:4, padding:13, marginBottom:16, alignItems:'flex-start' },
-  permWarningIcon:  { fontSize:18 },
   permWarningTitle: { fontSize:13, color:T.cream, fontFamily:FONTS.body, fontWeight:'600', marginBottom:3 },
   permWarningSub:   { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, lineHeight:16 },
 
   // Toggle
   toggleCard:       { backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, padding:16, flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:20 },
   toggleLeft:       { flexDirection:'row', alignItems:'center', gap:14, flex:1 },
-  toggleIcon:       { fontSize:26 },
   toggleTitle:      { fontSize:14, color:T.cream, fontFamily:FONTS.body, fontWeight:'600' },
   toggleSub:        { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, marginTop:2, fontWeight:'300' },
 
@@ -398,7 +421,6 @@ const s = StyleSheet.create({
 
   // Preview
   preview:          { backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, padding:14, flexDirection:'row', gap:12, marginBottom:24, alignItems:'flex-start' },
-  previewIcon:      { fontSize:20, marginTop:2 },
   previewTitle:     { fontSize:10, color:T.creamMute, letterSpacing:1, textTransform:'uppercase', fontFamily:FONTS.body, fontWeight:'600', marginBottom:8 },
   previewBubble:    { backgroundColor:T.surfaceEl, borderRadius:10, padding:12 },
   previewAppName:   { fontSize:10, color:T.creamMute, fontFamily:FONTS.body, marginBottom:3, letterSpacing:0.5 },
