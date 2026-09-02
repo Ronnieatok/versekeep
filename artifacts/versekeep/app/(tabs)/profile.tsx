@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Alert, Switch,
+  StyleSheet, Alert, Switch, Share,
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { T, FONTS } from '../../constants/theme';
+import { AppIcon } from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 type UserInfo = {
   name:  string;
@@ -33,6 +35,73 @@ export default function ProfileScreen() {
     });
   }, []);
 
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+    Alert.alert(
+      error ? 'Could not send email' : 'Check your inbox',
+      error ? error.message : `We sent a password reset link to ${user.email}.`,
+    );
+  };
+
+  const handleExport = async () => {
+    const session = (await supabase.auth.getSession()).data.session;
+    if (!session) return;
+    const { data, error } = await supabase
+      .from('verses')
+      .select('reference, translation, verse_text, note, created_at')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      Alert.alert('Export failed', error.message);
+      return;
+    }
+    if (!data?.length) {
+      Alert.alert('Nothing to export', 'Save a verse first, then come back here.');
+      return;
+    }
+
+    const message = data.map((verse, index) => [
+      `${index + 1}. ${verse.reference} (${verse.translation})`,
+      `"${verse.verse_text}"`,
+      verse.note?.trim() ? `Reflection: ${verse.note.trim()}` : '',
+    ].filter(Boolean).join('\n')).join('\n\n');
+    await Share.share({ title: 'VerseKeep journal', message });
+  };
+
+  const handleDeleteJournal = () => {
+    Alert.alert(
+      'Delete journal data',
+      'This permanently removes your saved verses, reflections, tasks, and reminders. Your account will remain active.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete data',
+          style: 'destructive',
+          onPress: async () => {
+            const session = (await supabase.auth.getSession()).data.session;
+            if (!session) return;
+            const { error } = await supabase.from('verses').delete().eq('user_id', session.user.id);
+            await supabase.from('reminders').delete().eq('user_id', session.user.id);
+            if (error) {
+              Alert.alert('Could not delete data', error.message);
+              return;
+            }
+            Alert.alert('Journal cleared', 'Your VerseKeep journal data has been removed.');
+          },
+        },
+      ],
+    );
+  };
+
+  const handleShareApp = async () => {
+    await Share.share({
+      title: 'VerseKeep',
+      message: 'I use VerseKeep to keep my favorite Bible verses and reflections close: https://versekeep.vercel.app',
+    });
+  };
+
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -51,32 +120,26 @@ export default function ProfileScreen() {
     {
       title: 'App',
       items: [
-        { icon:'🔔', label:'Reminder settings',   sub:'Set your daily devotion time',   onPress:() => router.push('/reminders') },
-        { icon:'📖', label:'Bible translations',   sub:'NIV · KJV · ESV · NLT · NKJV',  onPress:() => {} },
-        { icon:'🌍', label:'Language',              sub:'English',                         onPress:() => {} },
+        { icon:'notifications-outline', label:'Reminder settings', sub:'Set your daily devotion time', onPress:() => router.push('/reminders') },
+        { icon:'book-outline', label:'Bible translations', sub:'NIV · KJV · ESV · NLT · NKJV', onPress:() => Alert.alert('Bible translations', 'Choose a translation while searching or saving a verse.') },
+        { icon:'globe-outline', label:'Language', sub:'English', onPress:() => Alert.alert('Language', 'English is currently the only available language.') },
       ],
     },
     {
       title: 'Account',
       items: [
-        { icon:'🔒', label:'Change password',       sub:'Update your credentials',         onPress:() => {} },
-        { icon:'📤', label:'Export my verses',      sub:'Download all saved verses as PDF', onPress:() => {} },
-        { icon:'🗑️', label:'Delete account',        sub:'Permanently remove all data',     onPress:() => {
-            Alert.alert('Delete account', 'This cannot be undone. All your verses and notes will be permanently deleted.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => {} },
-            ]);
-          },
-        },
+        { icon:'lock-closed-outline', label:'Change password', sub:'Email me a secure reset link', onPress:handlePasswordReset },
+        { icon:'share-outline', label:'Export my verses', sub:'Share a text copy of your journal', onPress:handleExport },
+        { icon:'trash-outline', label:'Delete journal data', sub:'Remove verses and reflections', onPress:handleDeleteJournal },
       ],
     },
     {
       title: 'Share & support',
       items: [
-        { icon:'↗️', label:'Share VerseKeep',       sub:'Invite friends to the app',       onPress:() => {} },
-        { icon:'⭐', label:'Rate on Play Store',     sub:'Love the app? Leave a review',    onPress:() => {} },
-        { icon:'❓', label:'Help & support',          sub:'FAQs and contact us',              onPress:() => {} },
-        { icon:'ℹ️', label:'About',                   sub:'Version 1.0.0 · Built with ❤️',   onPress:() => {} },
+        { icon:'paper-plane-outline', label:'Share VerseKeep', sub:'Invite friends to the app', onPress:handleShareApp },
+        { icon:'star-outline', label:'Rate on Play Store', sub:'Love the app? Leave a review', onPress:() => Alert.alert('Thank you', 'Ratings will be available when VerseKeep is published to the Play Store.') },
+        { icon:'help-circle-outline', label:'Help & support', sub:'Tips for using your journal', onPress:() => Alert.alert('Help & support', 'Save verses from Search, add reflections in the verse detail view, and use the bookmark icon to keep favorites close.') },
+        { icon:'information-circle-outline', label:'About', sub:'Version 1.0.0 · VerseKeep', onPress:() => Alert.alert('VerseKeep', 'A personal space for Scripture, reflection, and daily practice.') },
       ],
     },
   ];
@@ -84,6 +147,7 @@ export default function ProfileScreen() {
   return (
     <View style={s.root}>
       <ScrollView contentContainerStyle={s.scroll}>
+        <ResponsiveContent style={s.content}>
 
         {/* Header */}
         <View style={s.header}>
@@ -110,7 +174,7 @@ export default function ProfileScreen() {
         <View style={s.toggleSection}>
           <View style={s.toggleRow}>
             <View style={s.toggleLeft}>
-              <Text style={s.toggleIcon}>🌙</Text>
+              <AppIcon name="moon-outline" size={21} color={T.creamDim} />
               <View>
                 <Text style={s.toggleLabel}>Dark mode</Text>
                 <Text style={s.toggleSub}>App appearance</Text>
@@ -127,7 +191,7 @@ export default function ProfileScreen() {
 
           <View style={[s.toggleRow, { borderTopWidth:0.5, borderTopColor:T.border }]}>
             <View style={s.toggleLeft}>
-              <Text style={s.toggleIcon}>🔔</Text>
+              <AppIcon name="notifications-outline" size={21} color={T.creamDim} />
               <View>
                 <Text style={s.toggleLabel}>Daily reminders</Text>
                 <Text style={s.toggleSub}>Push notifications</Text>
@@ -155,7 +219,7 @@ export default function ProfileScreen() {
                   onPress={item.onPress}
                   activeOpacity={0.7}
                 >
-                  <Text style={s.menuIcon}>{item.icon}</Text>
+                  <View style={s.menuIcon}><AppIcon name={item.icon} size={21} color={T.creamDim} /></View>
                   <View style={s.menuContent}>
                     <Text style={s.menuLabel}>{item.label}</Text>
                     <Text style={s.menuSub}>{item.sub}</Text>
@@ -172,9 +236,10 @@ export default function ProfileScreen() {
           <Text style={s.signOutText}>SIGN OUT</Text>
         </TouchableOpacity>
 
-        <Text style={s.version}>VerseKeep v1.0.0 · Made with ❤️ by Ronnie</Text>
+        <Text style={s.version}>VerseKeep v1.0.0 · Made for daily practice</Text>
 
         <View style={{ height: 80 }} />
+        </ResponsiveContent>
       </ScrollView>
     </View>
   );
@@ -183,7 +248,8 @@ export default function ProfileScreen() {
 const s = StyleSheet.create({
   root:              { flex:1, backgroundColor:T.black },
   scroll:            { paddingBottom:30 },
-  header:            { paddingHorizontal:20, paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border },
+  content:           { paddingHorizontal:0 },
+  header:            { paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border },
   headerTitle:       { fontFamily:FONTS.display, fontSize:28, color:T.cream, letterSpacing:1.5 },
   userCard:          { margin:20, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, padding:16, flexDirection:'row', alignItems:'center', gap:14 },
   avatar:            { width:52, height:52, backgroundColor:T.red, borderRadius:4, alignItems:'center', justifyContent:'center', flexShrink:0 },
@@ -197,7 +263,6 @@ const s = StyleSheet.create({
   toggleSection:     { marginHorizontal:20, marginBottom:20, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4 },
   toggleRow:         { flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:14 },
   toggleLeft:        { flexDirection:'row', alignItems:'center', gap:12, flex:1 },
-  toggleIcon:        { fontSize:20 },
   toggleLabel:       { fontSize:14, color:T.cream, fontFamily:FONTS.body, fontWeight:'500' },
   toggleSub:         { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, marginTop:1 },
   menuSection:       { marginHorizontal:20, marginBottom:16 },
@@ -205,7 +270,7 @@ const s = StyleSheet.create({
   menuCard:          { backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, overflow:'hidden' },
   menuRow:           { flexDirection:'row', alignItems:'center', padding:14, gap:12 },
   menuRowBorder:     { borderBottomWidth:0.5, borderBottomColor:T.border },
-  menuIcon:          { fontSize:20, width:28, textAlign:'center' },
+  menuIcon:          { width:28, alignItems:'center' },
   menuContent:       { flex:1 },
   menuLabel:         { fontSize:14, color:T.cream, fontFamily:FONTS.body, fontWeight:'500' },
   menuSub:           { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, marginTop:2 },
