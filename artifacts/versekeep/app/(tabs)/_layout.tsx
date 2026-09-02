@@ -1,19 +1,20 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { AppIcon } from '../../components/AppIcon';
 import { T, FONTS } from '../../constants/theme';
 
 type TabIconProps = {
   focused: boolean;
-  emoji:   string;
+  icon:    string;
   label:   string;
 };
 
-function TabIcon({ focused, emoji, label }: TabIconProps) {
+function TabIcon({ focused, icon, label }: TabIconProps) {
   return (
     <View style={s.wrapper}>
       {/* Red indicator bar above active tab */}
       {focused && <View style={s.indicator} />}
-      <Text style={s.emoji}>{emoji}</Text>
+      <AppIcon name={icon} size={20} color={focused ? T.red : T.creamMute} />
       <Text style={[s.label, focused && s.labelActive]}>{label}</Text>
     </View>
   );
@@ -33,7 +34,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🏠" label="Home" />
+            <TabIcon focused={focused} icon="home-outline" label="Home" />
           ),
         }}
       />
@@ -42,7 +43,7 @@ export default function TabLayout() {
         options={{
           title: 'Write',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="✍️" label="Write" />
+            <TabIcon focused={focused} icon="create-outline" label="Write" />
           ),
         }}
       />
@@ -51,7 +52,7 @@ export default function TabLayout() {
         options={{
           title: 'Vault',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🔖" label="Vault" />
+            <TabIcon focused={focused} icon="bookmark-outline" label="Vault" />
           ),
         }}
       />
@@ -60,7 +61,7 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="🔍" label="Search" />
+            <TabIcon focused={focused} icon="search-outline" label="Search" />
           ),
         }}
       />
@@ -69,7 +70,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} emoji="👤" label="Profile" />
+            <TabIcon focused={focused} icon="person-outline" label="Profile" />
           ),
         }}
       />
@@ -82,9 +83,9 @@ const s = StyleSheet.create({
     backgroundColor:  T.surface,
     borderTopColor:   T.border,
     borderTopWidth:   0.5,
-    height:           64,
-    paddingBottom:    10,
-    paddingTop:       4,
+    height:           Platform.OS === 'web' ? 74 : 84,
+    paddingBottom:    Platform.OS === 'web' ? 8 : 10,
+    paddingTop:       6,
   },
   wrapper: {
     alignItems:    'center',
@@ -101,7 +102,6 @@ const s = StyleSheet.create({
     backgroundColor: T.red,
     borderRadius:    2,
   },
-  emoji:       { fontSize: 19 },
   label:       {
     fontSize:      9,
     color:         T.creamMute,
