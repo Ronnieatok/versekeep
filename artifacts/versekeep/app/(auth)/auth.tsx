@@ -6,6 +6,7 @@ import {
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { T, FONTS } from '../../constants/theme';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 export default function AuthScreen() {
   const [mode,     setMode]     = useState<'login' | 'signup'>('login');
@@ -52,6 +53,23 @@ export default function AuthScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: Platform.OS === 'web' ? window.location.origin : undefined,
+        },
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      Alert.alert('Google sign-in unavailable', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -61,6 +79,7 @@ export default function AuthScreen() {
       <View style={styles.topBar} />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ResponsiveContent style={styles.authContent}>
 
         {/* Brand hero */}
         <View style={styles.hero}>
@@ -162,11 +181,12 @@ export default function AuthScreen() {
           </View>
 
           {/* Google */}
-          <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignIn} disabled={loading} activeOpacity={0.8}>
             <Text style={styles.googleG}>G</Text>
             <Text style={styles.googleLabel}>Continue with Google</Text>
           </TouchableOpacity>
         </View>
+        </ResponsiveContent>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -176,6 +196,7 @@ const styles = StyleSheet.create({
   root:             { flex:1, backgroundColor:T.black },
   topBar:           { height:3, backgroundColor:T.red },
   scroll:           { flexGrow:1 },
+  authContent:      { paddingHorizontal:0 },
   hero:             { backgroundColor:T.surface, paddingHorizontal:28, paddingTop:40, paddingBottom:28, borderBottomWidth:0.5, borderBottomColor:T.border },
   brandRow:         { flexDirection:'row', alignItems:'flex-end', gap:6, marginBottom:6 },
   brandRed:         { fontFamily:FONTS.display, fontSize:56, color:T.red, lineHeight:60 },
