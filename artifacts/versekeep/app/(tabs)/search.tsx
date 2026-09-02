@@ -7,6 +7,8 @@ import {
 import { router } from 'expo-router';
 import { supabase, getUserId } from '../../lib/supabase';
 import { T, FONTS } from '../../constants/theme';
+import { AppIcon } from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 // ─── API.Bible config ───────────────────────────────────
 // Get your free key at https://scripture.api.bible
@@ -197,69 +199,72 @@ export default function SearchScreen() {
 
   return (
     <View style={s.root}>
-      {/* Header */}
-      <View style={s.header}>
-        <Text style={s.headerTitle}>SEARCH SCRIPTURE</Text>
-      </View>
-
-      {/* Search input */}
-      <View style={s.searchRow}>
-        <View style={s.searchBox}>
-          <Text style={s.searchIcon}>🔍</Text>
-          <TextInput
-            style={s.searchInput}
-            placeholder="Keyword, reference, or topic..."
-            placeholderTextColor={T.creamMute}
-            value={query}
-            onChangeText={handleChange}
-            returnKeyType="search"
-            onSubmitEditing={() => { Keyboard.dismiss(); doSearch(query); }}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => { setQuery(''); setResults([]); }}>
-              <Text style={s.clearIcon}>✕</Text>
-            </TouchableOpacity>
-          )}
+      <ResponsiveContent style={s.topContent}>
+        <View style={s.header}>
+          <View>
+            <Text style={s.headerTitle}>SEARCH SCRIPTURE</Text>
+            <Text style={s.headerSub}>Find a verse, then keep it close</Text>
+          </View>
+          <AppIcon name="search-outline" size={25} color={T.red} />
         </View>
-      </View>
 
-      {/* Mode toggle */}
-      <View style={s.modeRow}>
-        {(['bible','vault'] as const).map(m => (
-          <TouchableOpacity
-            key={m}
-            style={[s.modeBtn, mode===m && s.modeBtnActive]}
-            onPress={() => { setMode(m); if(query) doSearch(query); }}
-            activeOpacity={0.8}
-          >
-            <Text style={[s.modeBtnText, mode===m && s.modeBtnTextActive]}>
-              {m === 'bible' ? '📖 Bible' : '🔖 My Vault'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={s.searchRow}>
+          <View style={s.searchBox}>
+            <AppIcon name="search-outline" size={18} color={T.creamMute} />
+            <TextInput
+              style={s.searchInput}
+              placeholder="Keyword, reference, or topic..."
+              placeholderTextColor={T.creamMute}
+              value={query}
+              onChangeText={handleChange}
+              returnKeyType="search"
+              onSubmitEditing={() => { Keyboard.dismiss(); doSearch(query); }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); }}>
+                <AppIcon name="close-circle" size={18} color={T.creamMute} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
-      {/* Translation row (only for bible mode) */}
-      {mode === 'bible' && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.transRow}
-        >
-          {TRANSLATIONS.map(t => (
+        <View style={s.modeRow}>
+          {(['bible','vault'] as const).map(m => (
             <TouchableOpacity
-              key={t}
-              style={[s.transBtn, translation===t && s.transBtnActive]}
-              onPress={() => { setTranslation(t); if(query) doSearch(query); }}
+              key={m}
+              style={[s.modeBtn, mode===m && s.modeBtnActive]}
+              onPress={() => { setMode(m); if(query) doSearch(query); }}
               activeOpacity={0.8}
             >
-              <Text style={[s.transBtnText, translation===t && s.transBtnTextActive]}>{t}</Text>
+              <AppIcon name={m === 'bible' ? 'book-outline' : 'bookmark-outline'} size={15} color={mode === m ? T.red : T.creamDim} />
+              <Text style={[s.modeBtnText, mode===m && s.modeBtnTextActive]}>
+                {m === 'bible' ? 'Bible search' : 'My vault'}
+              </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-      )}
+        </View>
+
+        {mode === 'bible' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.transRow}
+          >
+            {TRANSLATIONS.map(t => (
+              <TouchableOpacity
+                key={t}
+                style={[s.transBtn, translation===t && s.transBtnActive]}
+                onPress={() => { setTranslation(t); if(query) doSearch(query); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[s.transBtnText, translation===t && s.transBtnTextActive]}>{t}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </ResponsiveContent>
 
       {/* Results / empty state */}
       {loading ? (
@@ -269,7 +274,7 @@ export default function SearchScreen() {
         </View>
       ) : error ? (
         <View style={s.center}>
-          <Text style={s.errorIcon}>⚠️</Text>
+            <AppIcon name="alert-circle-outline" size={30} color={T.red} />
           <Text style={s.errorText}>{error}</Text>
           {!BIBLE_API_KEY && (
             <Text style={s.apiHint}>
@@ -323,7 +328,7 @@ export default function SearchScreen() {
         </ScrollView>
       ) : (
         <View style={s.center}>
-          <Text style={s.noResultIcon}>📭</Text>
+            <AppIcon name="file-tray-outline" size={32} color={T.red} />
           <Text style={s.noResultTitle}>NO RESULTS</Text>
           <Text style={s.noResultSub}>Try a different keyword or translation</Text>
         </View>
@@ -334,15 +339,15 @@ export default function SearchScreen() {
 
 const s = StyleSheet.create({
   root:             { flex:1, backgroundColor:T.black },
-  header:           { paddingHorizontal:20, paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border },
+  topContent:       { paddingHorizontal:0 },
+  header:           { paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border, flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
+  headerSub:        { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, marginTop:2 },
   headerTitle:      { fontFamily:FONTS.display, fontSize:28, color:T.cream, letterSpacing:1.5 },
   searchRow:        { paddingHorizontal:16, paddingVertical:12 },
   searchBox:        { flexDirection:'row', alignItems:'center', backgroundColor:T.surface, borderWidth:0.5, borderColor:T.borderMd, borderRadius:4, paddingHorizontal:12, gap:8 },
-  searchIcon:       { fontSize:16 },
   searchInput:      { flex:1, fontSize:14, color:T.cream, fontFamily:FONTS.body, paddingVertical:13 },
-  clearIcon:        { fontSize:16, color:T.creamMute, padding:4 },
-  modeRow:          { flexDirection:'row', gap:8, paddingHorizontal:16, marginBottom:10 },
-  modeBtn:          { flex:1, paddingVertical:8, borderRadius:3, borderWidth:0.5, borderColor:T.border, alignItems:'center' },
+  modeRow:          { flexDirection:'row', gap:8, marginBottom:10 },
+  modeBtn:          { flex:1, flexDirection:'row', gap:6, paddingVertical:9, borderRadius:3, borderWidth:0.5, borderColor:T.border, alignItems:'center', justifyContent:'center' },
   modeBtnActive:    { borderColor:T.red, backgroundColor:T.redFaint },
   modeBtnText:      { fontSize:12, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'600', letterSpacing:0.5 },
   modeBtnTextActive:{ color:T.red },
@@ -359,7 +364,7 @@ const s = StyleSheet.create({
   noResultIcon:     { fontSize:32, marginBottom:8 },
   noResultTitle:    { fontFamily:FONTS.display, fontSize:20, color:T.cream, letterSpacing:1 },
   noResultSub:      { fontSize:12, color:T.creamDim, fontFamily:FONTS.body, marginTop:4 },
-  list:             { padding:16, paddingBottom:80 },
+  list:             { width:'100%', maxWidth:760, alignSelf:'center', paddingHorizontal:20, paddingTop:16, paddingBottom:80 },
   resultCount:      { fontSize:10, color:T.creamMute, letterSpacing:1, textTransform:'uppercase', fontFamily:FONTS.body, fontWeight:'600', marginBottom:10 },
   resultCard:       { backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, padding:14, marginBottom:10 },
   resultHead:       { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:10 },
