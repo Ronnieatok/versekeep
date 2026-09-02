@@ -4,11 +4,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, ActivityIndicator,
+  RefreshControl, ActivityIndicator, TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { T, FONTS } from '../../constants/theme';
+import { AppIcon } from '../../components/AppIcon';
+import { ResponsiveContent } from '../../components/ResponsiveContent';
 
 type Verse = {
   id: string; reference: string; translation: string;
@@ -19,6 +21,8 @@ type Verse = {
 export default function VaultScreen() {
   const [verses,     setVerses]     = useState<Verse[]>([]);
   const [filter,     setFilter]     = useState<'all' | 'bookmarked'>('all');
+  const [sort,       setSort]       = useState<'recent' | 'oldest'>('recent');
+  const [query,      setQuery]      = useState('');
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -40,7 +44,16 @@ export default function VaultScreen() {
     setVerses(p => p.map(v => v.id === id ? { ...v, bookmarked: !current } : v));
   };
 
-  const display = filter === 'bookmarked' ? verses.filter(v => v.bookmarked) : verses;
+  const display = verses
+    .filter(v => filter === 'all' || v.bookmarked)
+    .filter(v => {
+      const haystack = `${v.reference} ${v.verse_text} ${v.note ?? ''} ${(v.tags ?? []).join(' ')}`.toLowerCase();
+      return haystack.includes(query.trim().toLowerCase());
+    })
+    .sort((a, b) => {
+      const direction = sort === 'recent' ? -1 : 1;
+      return direction * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
 
   const renderItem = ({ item: v }: { item: Verse }) => (
     <View style={styles.card}>
@@ -53,7 +66,7 @@ export default function VaultScreen() {
           <View style={styles.cardHeadRight}>
             <View style={styles.transBadge}><Text style={styles.transBadgeText}>{v.translation}</Text></View>
             <TouchableOpacity onPress={() => toggleBookmark(v.id, v.bookmarked)} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-              <Text style={{ fontSize:18, color: v.bookmarked ? T.red : T.creamMute }}>{v.bookmarked ? '🔖' : '🏷️'}</Text>
+                <AppIcon name={v.bookmarked ? 'bookmark' : 'bookmark-outline'} size={19} color={v.bookmarked ? T.red : T.creamMute} />
             </TouchableOpacity>
           </View>
         </View>
@@ -75,22 +88,51 @@ export default function VaultScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>MY VAULT</Text>
-        <Text style={styles.headerSub}>{verses.length} verses · {verses.filter(v=>v.bookmarked).length} bookmarked</Text>
-      </View>
+      <ResponsiveContent style={styles.topContent}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>MY VAULT</Text>
+            <Text style={styles.headerSub}>{verses.length} verses · {verses.filter(v=>v.bookmarked).length} bookmarked</Text>
+          </View>
+          <AppIcon name="library-outline" size={25} color={T.red} />
+        </View>
 
-      {/* Filter */}
-      <View style={styles.filterRow}>
-        {(['all','bookmarked'] as const).map(f => (
-          <TouchableOpacity key={f} style={[styles.filterBtn, filter===f && styles.filterBtnActive]} onPress={() => setFilter(f)} activeOpacity={0.8}>
-            <Text style={[styles.filterText, filter===f && styles.filterTextActive]}>
-              {f === 'all' ? 'All' : 'Bookmarked'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.searchBox}>
+          <AppIcon name="search-outline" size={18} color={T.creamMute} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search your verses..."
+            placeholderTextColor={T.creamMute}
+            autoCorrect={false}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <AppIcon name="close-circle" size={18} color={T.creamMute} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filterRow}>
+          {(['all','bookmarked'] as const).map(f => (
+            <TouchableOpacity key={f} style={[styles.filterBtn, filter===f && styles.filterBtnActive]} onPress={() => setFilter(f)} activeOpacity={0.8}>
+              <Text style={[styles.filterText, filter===f && styles.filterTextActive]}>
+                {f === 'all' ? 'All verses' : 'Bookmarked'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <View style={styles.sortGroup}>
+            {(['recent', 'oldest'] as const).map(value => (
+              <TouchableOpacity key={value} onPress={() => setSort(value)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Text style={[styles.sortText, sort === value && styles.sortTextActive]}>
+                  {value === 'recent' ? 'Recent' : 'Oldest'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ResponsiveContent>
 
       <FlatList
         data={display}
@@ -100,9 +142,11 @@ export default function VaultScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={T.red} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={{ fontSize:36, marginBottom:10 }}>🔖</Text>
+            <AppIcon name={query ? 'search-outline' : 'bookmark-outline'} size={38} color={T.red} />
             <Text style={styles.emptyTitle}>NO {filter === 'bookmarked' ? 'BOOKMARKS' : 'SAVED VERSES'}</Text>
-            <Text style={styles.emptySub}>{filter === 'bookmarked' ? 'Tap the bookmark icon on any verse' : 'Write your first verse to get started'}</Text>
+            <Text style={styles.emptySub}>
+              {query ? 'Try a different search term' : filter === 'bookmarked' ? 'Tap the bookmark icon on any verse' : 'Write your first verse to get started'}
+            </Text>
           </View>
         }
       />
@@ -113,15 +157,21 @@ export default function VaultScreen() {
 const styles = StyleSheet.create({
   root:              { flex:1, backgroundColor:T.black },
   center:            { flex:1, backgroundColor:T.black, alignItems:'center', justifyContent:'center' },
-  header:            { paddingHorizontal:20, paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border },
+  topContent:        { paddingHorizontal:0 },
+  header:            { paddingTop:18, paddingBottom:14, borderBottomWidth:0.5, borderBottomColor:T.border, flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
   headerTitle:       { fontFamily:FONTS.display, fontSize:28, color:T.cream, letterSpacing:1.5 },
   headerSub:         { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'300', marginTop:2 },
-  filterRow:         { flexDirection:'row', gap:7, paddingHorizontal:20, paddingVertical:12, borderBottomWidth:0.5, borderBottomColor:T.border },
+  searchBox:         { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:T.surface, borderWidth:0.5, borderColor:T.borderMd, borderRadius:4, paddingHorizontal:12, marginTop:2, marginBottom:10 },
+  searchInput:       { flex:1, color:T.cream, fontFamily:FONTS.body, fontSize:14, paddingVertical:12 },
+  filterRow:         { flexDirection:'row', alignItems:'center', gap:7, paddingBottom:12, borderBottomWidth:0.5, borderBottomColor:T.border, flexWrap:'wrap' },
   filterBtn:         { paddingVertical:6, paddingHorizontal:14, borderRadius:2, borderWidth:0.5, borderColor:T.border },
   filterBtnActive:   { borderColor:T.red, backgroundColor:T.redFaint },
   filterText:        { fontSize:11, color:T.creamDim, fontFamily:FONTS.body, fontWeight:'700', letterSpacing:0.8, textTransform:'uppercase' },
   filterTextActive:  { color:T.red },
-  list:              { padding:16, paddingBottom:80 },
+  sortGroup:         { flexDirection:'row', gap:10, marginLeft:'auto', paddingVertical:6 },
+  sortText:          { fontSize:11, color:T.creamMute, fontFamily:FONTS.body, fontWeight:'600' },
+  sortTextActive:    { color:T.cream },
+  list:              { width:'100%', maxWidth:760, alignSelf:'center', paddingHorizontal:20, paddingTop:16, paddingBottom:80 },
   card:              { backgroundColor:T.surface, borderWidth:0.5, borderColor:T.border, borderRadius:4, marginBottom:10, overflow:'hidden' },
   cardTopBar:        { height:2.5, backgroundColor:T.red },
   cardBody:          { padding:14 },
